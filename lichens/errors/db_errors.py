@@ -29,3 +29,7 @@ class UniqueKeyMissedError(ExceptionBase):
 class InsertInterruptedError(ExceptionBase):
     def __repr__(self) -> str:
         return super().__repr__()
+    
+class ProgramNotFoundError(ExceptionBase):
+    def __repr__(self) -> str:
+        return super().__repr__()

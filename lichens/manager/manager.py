@@ -28,8 +28,9 @@ class EtlManager:
         self.name: str = name
         self._engine: Engine = None
         self._etl_setting: EtlProgMng = None
-        self._src_folder: PathLike = None
-        self._dst_folder: dict[str, PathLike] = {}
+        self.src_folder: PathLike = None
+        self.dst_folder: dict[str, PathLike] = {}
+        self.conf:dict = None
 
         self._fetch_config()
 
@@ -42,19 +43,26 @@ class EtlManager:
                 self._etl_setting = (
                     sess.query(EtlProgMng).filter(EtlProgMng.name == self.name).first()
                 )
-                self._src_folder = self._etl_setting.src_folder
-                self._dst_folder[Status.FAIL.name] = os.path.join(
-                    self._etl_setting.dst_folder, Status.FAIL.name
-                )
-                self._dst_folder[Status.SUCCESS.name] = os.path.join(
-                    self._etl_setting.dst_folder, Status.SUCCESS.name
-                )
-                self._dst_folder[Status.SKIP.name] = os.path.join(
-                    self._etl_setting.dst_folder, Status.SKIP.name
-                )
+            if not self._etl_setting:
+                raise ProgramNotFoundError(f"Name={self.name} not found. You can use lichens.tools.add_etl() to add one first.")
+            
+            self.src_folder = self._etl_setting.src_folder
+            self.dst_folder[Status.FAIL.name] = os.path.join(
+                self._etl_setting.dst_folder, Status.FAIL.name
+            )
+            self.dst_folder[Status.SUCCESS.name] = os.path.join(
+                self._etl_setting.dst_folder, Status.SUCCESS.name
+            )
+            self.dst_folder[Status.SKIP.name] = os.path.join(
+                self._etl_setting.dst_folder, Status.SKIP.name
+            )
+            self.conf:dict = self._etl_setting.json_setting
 
         except Exception as e:
             raise DatabaseConnectingFailed(e)
+        
+    def reload_conf(self):
+        self._fetch_config()
 
     def move(self, src:os.PathLike, status: Literal[Status.FAIL, Status.SUCCESS, Status.SKIP]) -> None:
         """Move the processed file to the destination folder according to the status.
@@ -63,7 +71,7 @@ class EtlManager:
             src (PathLike): The path of source file. 
             status (Literal[&#39;fail&#39;, &#39;skip&#39;, &#39;success&#39;]): The process status
         """
-        dst:os.PathLike = os.join(self._dst_folder, f"{status}/")
+        dst:os.PathLike = os.join(self.dst_folder, f"{status}/")
         try: 
             shutil.move(src, dst)
         except Exception as e:
