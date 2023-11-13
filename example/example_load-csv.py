@@ -1,5 +1,5 @@
-from colossetle import EtlManager
-from colossetle.logging import logger as log 
+from lichens import EtlManager
+from lichens.logging import logger as log 
 import argparse
 
 

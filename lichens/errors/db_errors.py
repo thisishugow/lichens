@@ -19,3 +19,13 @@ class UpdateStatusFailed(ExceptionBase):
 class RowExistsAlreadyError(ExceptionBase):
     def __repr__(self) -> str:
         return f'File has duplicated row. Detail={self.msg}'
+    
+
+class UniqueKeyMissedError(ExceptionBase):
+    def __repr__(self) -> str:
+        return super().__repr__()
+    
+
+class InsertInterruptedError(ExceptionBase):
+    def __repr__(self) -> str:
+        return super().__repr__()

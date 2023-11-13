@@ -4,10 +4,10 @@ from typing import Literal
 import pendulum
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
-from colossetle.db.connection import get_db_session
-from colossetle.db.models import EtlProcHist, EtlProgMng
-from colossetle.errors.db_errors import *
-from colossetle.utils import Status, generate_insert_sql, DupPolicy
+from lichens.db.connection import get_db_session
+from lichens.db.models import EtlProcHist, EtlProgMng
+from lichens.errors.db_errors import *
+from lichens.utils import Status, generate_insert_sql, DupPolicy
 from pandas.core.frame import DataFrame
 
 
@@ -110,11 +110,11 @@ class EtlManager:
         schema:str=None,
         if_exists: Literal[
             DupPolicy.REPLACE, DupPolicy.RAISE_ERROR, DupPolicy.SKIP
-        ] = DupPolicy.REPLACE.name,
+        ] = DupPolicy.RAISE_ERROR.name,
         chunksize:int=None,
         unique_key:list[str]=None,
-    ):
-        """_summary_
+    )->None:
+        """Load a DataFrame to the target table. 
 
         Args:
             df (DataFrame): the transformed pd.DataFrame, which has identical schema to the target table. 
@@ -122,19 +122,36 @@ class EtlManager:
             schema (str): schema name
             if_exists (Literal[ &#39;replace&#39;, , &#39;skip&#39;, , &#39;raise_error&#39;, ], optional): . Defaults to "replace".
         """
-        sess:Session = Session(self._engine)
-        if if_exists == DupPolicy.REPLACE.name:
-            unique_key = None
-            
-        if chunksize:
-            sql_text_list = [text(a) for a in generate_insert_sql(df, tablename)]
-            for _, _sql in enumerate(sql_text_list):
-                if if_exists == DupPolicy.REPLACE.name:
-                    sess.execute(_sql)
-                elif if_exists == DupPolicy.SKIP.name:
-                    sess.execute(_sql)
-                elif if_exists == DupPolicy.RAISE_ERROR.name:
-                    raise RowExistsAlreadyError(msg=f"""""")
+        try:
+            sess:Session = Session(self._engine)
+        except Exception as e:
+            raise e
+        
+        if if_exists!=DupPolicy.SKIP.name and not unique_key:
+            raise UniqueKeyMissedError(f"Please specify the unique key from {str(tuple(df.columns))}")
+        
+        if schema:
+            tablename = f"{schema}.{tablename}"
+
+        def _do_insert(unique_key_:list[str]=None, skip_on_conflict_:bool=False):
+            _sql: list[str] | str = generate_insert_sql(df, tablename, chunksize, unique_key_, skip_on_conflict_)
+            _sql = _sql if isinstance(_sql, list) else [_sql, ]
+            return list(map(sess.execute, [text(a) for a in _sql]))
+        
+        try:
+            if if_exists == DupPolicy.REPLACE.name:
+                _ = _do_insert(unique_key, True)
+            elif if_exists == DupPolicy.SKIP.name:
+                _ = _do_insert(unique_key, False)
+            else: #  if_exists == DupPolicy.RAISE_ERROR.name
+                _ = _do_insert(None, False)
+ 
+        except Exception as e:
+            sess.rollback()
+            raise InsertInterruptedError(e)
+        finally:
+            sess.close()
+                
 
 
         

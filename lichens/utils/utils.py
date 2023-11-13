@@ -36,24 +36,25 @@ def generate_insert_sql(
     """
     Generate SQL INSERT or UPDATE statements for a given DataFrame.
 
-    Parameters:
-    source_df (DataFrame): The source DataFrame containing the data to be inserted into the database.
-    tablename (str): The name of the database table where the data will be inserted.
-    chunksize (int, optional): The size of each chunk of data to be inserted. If specified, the function generates
-        multiple SQL statements, each containing a chunk of rows. If None, a single SQL statement is generated for
-        the entire DataFrame. Default is None.
-    unique_key (list of str, optional): The column(s) to be used as a unique key to check for duplicates in the
-        database table. If duplicates are found, the function generates UPDATE statements instead of INSERT
-        statements. Default is None.
-    skip_on_conflict (bool, optional): If True, generates SQL statements to skip insertion on conflict (DO NOTHING).
-        If False, generates UPDATE statements on conflict. Default is False.
+    Args:
+        source_df (DataFrame): The source DataFrame containing the data to be inserted into the database.
+        tablename (str): The name of the database table where the data will be inserted.
+        chunksize (int, optional): The size of each chunk of data to be inserted. If specified, the function generates
+            multiple SQL statements, each containing a chunk of rows. If None, a single SQL statement is generated for
+            the entire DataFrame. Default is None.
+        unique_key (list of str, optional): The column(s) to be used as a unique key to check for duplicates in the
+            database table. If duplicates are found, the function generates UPDATE statements instead of INSERT
+            statements. Default is None.
+        skip_on_conflict (bool, optional): If True, generates SQL statements to skip insertion on conflict (DO NOTHING).
+            If False, generates UPDATE statements on conflict. Default is False.
 
     Returns:
-    str | list[str]: If chunksize is provided, a list of SQL statements is returned, with each statement
-        containing a chunk of data. If chunksize is None, a single SQL statement is returned as a string,
-        containing all the data from the DataFrame.
+        str | list[str]: If chunksize is provided, a list of SQL statements is returned, with each statement
+            containing a chunk of data. If chunksize is None, a single SQL statement is returned as a string,
+            containing all the data from the DataFrame.
 
     Examples:
+    ```
     # Generate SQL INSERT or UPDATE statements for the entire DataFrame
     sql_statements = generate_insert_sql(df, 'your_table_name', unique_key=['column1'])
 
@@ -62,6 +63,7 @@ def generate_insert_sql(
 
     # Generate SQL INSERT or UPDATE statements in chunks of 2 rows
     sql_statements = generate_insert_sql(df, 'your_table_name', chunksize=2, unique_key=['column1', 'column2'])
+    ```
     """
     if chunksize:
         sql_text_list: list[str] = []

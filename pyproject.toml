@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "colossetle"
+name = "lichens"
 version = "0.1.0"
 description = "ETL framework for Colosscious Pharmquer"
 authors = ["thisishugow <59921505+thisishugow@users.noreply.github.com>"]
