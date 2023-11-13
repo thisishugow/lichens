@@ -38,7 +38,7 @@ python -m lichens add-etl \
 --json-config etl-setting.json
 ```
 ### Write an ETL
-See more from `example/`
+See [full example](https://github.com/thisishugow/lichens/blob/main/example/example_load-csv.py) 
 
 ```python
 # Create an ETL Manager
@@ -65,10 +65,9 @@ em.update_status(
         filename=f, 
         status=_status, 
         last_log=_last_log)
-    em.move(
-        src=os.path.join(em.src_folder, f),
-        status=_status
-    )
+em.move(
+    src=os.path.join(em.src_folder, f),
+    status=_status)
 
 # Use state highlighted logger
 from lichens.logging import logger as log

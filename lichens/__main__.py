@@ -10,6 +10,10 @@ from lichens.tools import etl_prog_mng_template
 os.environ['LICHENS_HOME'] = os.path.dirname(__file__)
 os.environ['ALEMBIC_CONFIG'] = os.path.join(os.environ.get('LICHENS_HOME'), "./db/migrations/alembic.ini")
 
+_orm_script_dir:os.PathLike = os.path.join(os.environ['LICHENS_HOME'], 'db/migrations/versions')
+if not os.path.exists(_orm_script_dir):
+    os.mkdir(_orm_script_dir)
+
 @click.group()
 def cli():
     pass

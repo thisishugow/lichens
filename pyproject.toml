@@ -5,6 +5,9 @@ description = "ETL framework for Colosscious Pharmquer"
 authors = ["thisishugow <59921505+thisishugow@users.noreply.github.com>"]
 license = "MIT License"
 readme = "README.md"
+exclude = [
+    "lichens/db/migrations/versions/*.py"
+]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
