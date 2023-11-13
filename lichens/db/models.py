@@ -1,5 +1,4 @@
-from click import DateTime
-from sqlalchemy import Column, ForeignKey, Integer, MetaData, String, func
+from sqlalchemy import Column, ForeignKey, Integer, MetaData, String, func, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import declarative_base
 
@@ -8,7 +7,8 @@ Base = declarative_base(metadata=MetaData(schema='pharmquer'))
 
 class EtlProcHist(Base):
     __tablename__ = "etl_proc_hist"
-
+    
+    id = Column(Integer, nullable=False, primary_key=True)
     file_name  = Column(String(256), nullable=False, )
     etl_id = Column(Integer, ForeignKey('etl_prog_mng.id'))
     status = Column(String(16), nullable=False,)

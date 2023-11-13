@@ -2,13 +2,14 @@ from os import PathLike
 import os
 from typing import Literal
 import pendulum
+import shutil
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
-from lichens.db.connection import get_db_session
 from lichens.db.models import EtlProcHist, EtlProgMng
 from lichens.errors.db_errors import *
 from lichens.utils import Status, generate_insert_sql, DupPolicy
 from pandas.core.frame import DataFrame
+import abc
 
 
 class EtlManager:
@@ -55,21 +56,18 @@ class EtlManager:
         except Exception as e:
             raise DatabaseConnectingFailed(e)
 
-    def validate(self) -> bool:
-        """Valid a schema of a transformed csv is legal
-
-        Returns:
-            bool: if the format is valid.
-        """
-        pass
-
-    def move(status: Literal[Status.FAIL, Status.SUCCESS, Status.SKIP]) -> None:
+    def move(self, src:os.PathLike, status: Literal[Status.FAIL, Status.SUCCESS, Status.SKIP]) -> None:
         """Move the processed file to the destination folder according to the status.
 
         Args:
+            src (PathLike): The path of source file. 
             status (Literal[&#39;fail&#39;, &#39;skip&#39;, &#39;success&#39;]): The process status
         """
-        pass
+        dst:os.PathLike = os.join(self._dst_folder, f"{status}/")
+        try: 
+            shutil.move(src, dst)
+        except Exception as e:
+            raise e
 
     def update_status(
         self,
