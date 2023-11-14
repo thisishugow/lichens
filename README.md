@@ -25,7 +25,7 @@ python -m lichens --help
 
 # Initialize the database if needed. 
 python -m lichens migrate \
--c postgresql+psycopg2://demodb01:demodb01@localhost:5432/blog_api 
+-c driver://user:pass@localhost:port/dbname 
 
 
 # Create an ETL setting template
@@ -72,4 +72,17 @@ em.move(
 # Use state highlighted logger
 from lichens.logging import logger as log
 
+# Run as scheduled
+## Define a function to be executed
+def your_function():
+    # Your function logic here
+    pass
+
+# Run the function every minute for a total of 5 times
+em.run_as_schtask(your_function, '*/1 * * * *', times_=5)
+## Decorate the function with the scheduled decorator
+@em.scheduled(crontab='*/1 * * * *', times_=5)
+def your_scheduled_function():
+    # Your function logic here
+    pass
 ```
