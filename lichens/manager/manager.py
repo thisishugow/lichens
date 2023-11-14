@@ -31,6 +31,7 @@ class EtlManager:
         """
         self.constr: str = constr
         self.name: str = name
+        self.id: int = None
         self._engine: Engine = None
         self._etl_setting: EtlProgMng = None
         self.src_folder: PathLike = None
@@ -52,6 +53,7 @@ class EtlManager:
                 raise ProgramNotFoundError(f"Name={self.name} not found. You can use lichens.tools.add_etl() to add one first.")
                 
             self.src_folder = self._etl_setting.src_folder
+            self.id = self._etl_setting.id
             self.dst_folder[Status.FAIL.name] = os.path.join(
                 self._etl_setting.dst_folder, Status.FAIL.name
             )
@@ -86,7 +88,31 @@ class EtlManager:
             shutil.move(src, dst)
         except Exception as e:
             raise e
+    def get_queue_list(self,)->list[str]:
+        """Get the queued files
 
+        Raises:
+            e: _description_
+
+        Returns:
+            list[str]: list contains unprocessed file names. 
+        """
+        try:
+            sess:Session = Session(self._engine)
+        except Exception as e:
+            raise e
+        
+        try:
+            res:list[EtlProcHist] = sess.query(EtlProcHist)\
+                .filter(
+                    EtlProcHist.etl_id == self.id,
+                    EtlProcHist.status.in_(['queue', None]) ).all()
+            return [a.file_name for a in res]
+        except Exception as e:
+            sess.rollback()
+        finally:
+            sess.close()
+        
     def update_status(
         self,
         filename: str,
@@ -121,6 +147,7 @@ class EtlManager:
                         EtlProcHist.last_log: last_log,
                     })
                 if updated_rows==0:
+                    log.warning(f"{filename} not registed. Insert new when processed.")
                     new:dict = {
                         "file_name":filename,
                         "etl_id":self._etl_setting.id,
@@ -130,6 +157,8 @@ class EtlManager:
                         "create_dtt": pendulum.now().__str__(),
                     }
                     s.add(EtlProcHist(**new))
+                else: 
+                    log.info(f"{filename} done with status={status}. Log updated.")
                 s.commit()
             except Exception as e:
                 s.rollback()
@@ -222,8 +251,8 @@ class EtlManager:
             sec_waiting_next_run:int = CronTab(crontab).next()
             func(*args, **kwargs)
             runs += 1
-            log.info(f'>>> Wait {sec_waiting_next_run} seconds for next run <<<')
             if runs<times_:
+                log.info(f'>>> Wait {sec_waiting_next_run} seconds for next run <<<')
                 sleep(sec_waiting_next_run)
 
     def scheduled(self, crontab:str, times_:int=-1)->None:

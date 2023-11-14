@@ -14,8 +14,8 @@ class EtlProcHist(Base):
     status = Column(String(16), nullable=False,)
     update_by = Column(Integer)
     last_log = Column(JSONB)
-    create_dtt = Column(DateTime, default=func.now(), nullable=False)
-    update_dtt = Column(DateTime, default=func.now(), nullable=False)
+    create_dtt = Column(DateTime, default=func.now(), nullable=False, index=True)
+    update_dtt = Column(DateTime, default=func.now(), nullable=False, index=True)
 
 
 class EtlProgMng(Base):

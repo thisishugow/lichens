@@ -10,7 +10,7 @@ import pendulum
 from lichens import EtlManager
 from lichens.errors.db_errors import ProgramNotFoundError
 from lichens.logging import logger as log
-from lichens.tools import add_etl
+from lichens.tools import add_etl, add_file
 
 CONNECTION_STRING: str = "postgresql+psycopg2://username:password@localhost:5432/default"
 ETL_NAME: str = "demodb-etl"
@@ -118,12 +118,15 @@ def load(df):
 
 def do(dont_move:bool):
     src_folder = em.src_folder
-
     for _, f in enumerate(os.listdir(src_folder)):
+        add_file(file_name=f, etl_id=em.id, update_by=1, con=CONNECTION_STRING)
+    queue:list[str] = em.get_queue_list()
+    print(queue)
+    for _, f in enumerate(queue):
         em.reload_conf()
         # config of the program 
         conf:dict[str, Any] = em.conf
-
+        
         _status:str = None
         _last_log:dict[str, Any] = {
             "filename":f,

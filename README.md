@@ -1,6 +1,8 @@
 # lichens
 ETL framework for Colosscious Pharmquer.  
 It contains a Web UI and a backend. See [Colosscious Official Website](https://www.colosscious.com) for more. 
+`lichens` stores the provisionings of ETL in database, which provides easy way for management, especially for the program packaged in containers/pods or running remotely. 
+
 
 ## Installation 
 ```
@@ -78,7 +80,7 @@ def your_function():
     # Your function logic here
     pass
 
-# Run the function every minute for a total of 5 times
+## Run the function every minute for a total of 5 times
 em.run_as_schtask(your_function, '*/1 * * * *', times_=5)
 ## Decorate the function with the scheduled decorator
 @em.scheduled(crontab='*/1 * * * *', times_=5)
