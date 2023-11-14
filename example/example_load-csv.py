@@ -110,63 +110,76 @@ def load(df):
     em.load_df(
         df=df,
         tablename="sample_data",
-        schema="public",
-        if_exists="raise_error",
+        schema="pharmquer",
+        if_exists="replace",
         chunksize=10,
         unique_key=["process", "param_name", "update_dtt"],
     )
 
+def do(dont_move:bool):
+    src_folder = em.src_folder
+
+    for _, f in enumerate(os.listdir(src_folder)):
+        em.reload_conf()
+        # config of the program 
+        conf:dict[str, Any] = em.conf
+
+        _status:str = None
+        _last_log:dict[str, Any] = {
+            "filename":f,
+            "update_dtt":None,
+            "message":None,
+        }
+        try:
+            log.info(f"Start to process: {f}")
+            extract(fp= os.path.join(src_folder, f))\
+                .pipe(transform)\
+                .pipe(load)
+            _status = 'success'
+
+        except KeyboardInterrupt:
+            log.info('<ctrl+c> detected.')
+            sys.exit(0)
+        
+        except Exception as e:
+            log.error(e, exc_info=True)
+            _status = 'fail'
+            _last_log["message"] = str(e)
+
+        finally:
+            _last_log["update_dtt"] = pendulum.now().__str__()
+            _last_log["statue"] = _status
+
+            em.update_status(
+                filename=f, 
+                status=_status, 
+                user_id=1,
+                last_log=_last_log)
+            if not dont_move:
+                em.move(
+                    src=os.path.join(em.src_folder, f),
+                    status=_status
+                )
+            log.info(f"{f} processed. Status: {_last_log}")
+
+@em.scheduled(crontab="*/1 * * * *", times_=10)
+def do_with_decorator(dont_move:bool):
+    do(dont_move=dont_move)
 
 def main():
     parser = argparse.ArgumentParser(description="An example ETL")
-    parser.add_argument("-i", "--interval", help="Batch interval in seconds", type=int, default=30, required=False)
+    parser.add_argument("-c", "--cronlike", help="schedule with crontab-like string, e.g., \"*/5 * * * *\"", type=str, default='*/5 * * * *', required=False)
     parser.add_argument("--test-mode", help="keep processed file in source folder", action='store_true', required=False)
+    parser.add_argument("-t,", "--times", help="run N times", type=int, default=None, required=False)
     args = parser.parse_args()
-    interval:int = args.interval
+    crontab:int = args.cronlike
     dont_move:bool = args.test_mode
-    em.reload_conf()
+    times_:bool = args.times
+    
+    em.run_as_schtask(func=do, crontab=crontab, times_=times_, dont_move=dont_move)
+    # Alternatively, you can run with fixed with decorator @em.scheduled(crontab="* * * * *", times_=10)
+    do_with_decorator(dont_move)
 
-    # config of the program 
-    conf:dict[str, Any] = em.conf
-    src_folder = em.src_folder
-    while True: # DEPRECIATED. Using Airflow is recommended.  
-        for _, f in enumerate(os.listdir(src_folder)):
-            _status:str = None
-            _last_log:dict[str, Any] = {
-                "filename":f,
-                "update_dtt":None,
-                "message":None,
-            }
-            try:
-                log.info(f"Start to process: {f}")
-                extract(fp= os.path.join(src_folder, f))\
-                    .pipe(transform)\
-                    .pipe(load)
-                _status = 'success'
-
-            except KeyboardInterrupt:
-                log.info('<ctrl+c> detected.')
-                sys.exit(0)
-            
-            except Exception as e:
-                log.error(e, exc_info=True)
-                _status = 'fail'
-                _last_log["message"] = str(e)
-
-            finally:
-                _last_log["update_dtt"] = pendulum.now().__str__()
-                em.update_status(
-                    filename=f, 
-                    status=_status, 
-                    last_log=_last_log)
-                if not dont_move:
-                    em.move(
-                        src=os.path.join(em.src_folder, f),
-                        status=_status
-                    )
-                log.info(f"{f} processed. Status: {_last_log}")
-        log.info(f'Waiting {interval} for next run.')
-        sleep(interval)
 
 
 if __name__ == "__main__":

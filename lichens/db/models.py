@@ -13,6 +13,7 @@ class EtlProcHist(Base):
     etl_id = Column(Integer, ForeignKey('etl_prog_mng.id'))
     status = Column(String(16), nullable=False,)
     update_by = Column(Integer)
+    last_log = Column(JSONB)
     create_dtt = Column(DateTime, default=func.now(), nullable=False)
     update_dtt = Column(DateTime, default=func.now(), nullable=False)
 

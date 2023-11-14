@@ -1,6 +1,8 @@
 from os import PathLike
 import os
-from typing import Literal
+from time import sleep
+from typing import Literal, Callable
+from crontab import CronTab
 import pendulum
 import shutil
 from sqlalchemy import Engine, create_engine, text
@@ -10,6 +12,9 @@ from lichens.errors.db_errors import *
 from lichens.utils import Status, generate_insert_sql, DupPolicy
 from pandas.core.frame import DataFrame
 import abc
+from logging import getLogger
+
+log = getLogger()
 
 
 class EtlManager:
@@ -85,12 +90,14 @@ class EtlManager:
     def update_status(
         self,
         filename: str,
+        user_id:int,
         status: Literal[Status.FAIL, Status.SUCCESS, Status.SKIP, Status.PROCESSING],
         last_log: dict[str, str] = None,
     ) -> None:
         """update the current status and log to the database.
         Args:
             filename (str): processed filename.
+            user_id (int): the user who upload or process the file. 
             status (Literal[&#39;fail&#39;, &#39;skip&#39;, &#39;success&#39;, &#39;processing&#39;]): The current status.
             last_log (dict[str, str]): log in json. Recommended&Default={ "status": "processing", "filename":"sample.csv", "update_dtt": pendulum.now()}.
         """
@@ -107,9 +114,22 @@ class EtlManager:
                     EtlProgMng.id == self._etl_setting.id
                 ).update({EtlProgMng.last_log: last_log})
 
-                s.query(EtlProcHist).filter(EtlProcHist.file_name == filename).update(
-                    {EtlProcHist.status: status,}
-                )
+                updated_rows:int = s.query(EtlProcHist)\
+                    .filter(EtlProcHist.file_name == filename)\
+                    .update({
+                        EtlProcHist.status: status,
+                        EtlProcHist.last_log: last_log,
+                    })
+                if updated_rows==0:
+                    new:dict = {
+                        "file_name":filename,
+                        "etl_id":self._etl_setting.id,
+                        "status": status,
+                        "update_by": user_id,
+                        "last_log": last_log,
+                        "create_dtt": pendulum.now().__str__(),
+                    }
+                    s.add(EtlProcHist(**new))
                 s.commit()
             except Exception as e:
                 s.rollback()
@@ -157,12 +177,90 @@ class EtlManager:
                 _ = _do_insert(unique_key, False)
             else: #  if_exists == DupPolicy.RAISE_ERROR.name
                 _ = _do_insert(None, False)
- 
+            sess.commit()
         except Exception as e:
             sess.rollback()
             raise InsertInterruptedError(e)
         finally:
             sess.close()
+
+    def run_as_schtask(self, func:Callable, crontab:str, times_:int=-1, *args, **kwargs)->None:
+        """
+        Run a function based on a cron-like schedule using a Schtasks approach.
+
+        Args:
+            func (Callable): The function to be executed.
+            crontab (str): A string representing the cron-like schedule for function execution.
+            times_ (int, optional): The number of times the function should be executed. 
+                If set to -1 (default), the function runs indefinitely based on the cron schedule.
+
+        Returns:
+        None
+
+        Example:
+        ```
+        # Create an instance of EtlManager
+        em = EtlManager()
+
+        # Define a function to be executed
+        def your_function():
+            # Your function logic here
+            pass
+
+        # Run the function every minute for a total of 5 times
+        em.run_as_schtask(your_function, '*/1 * * * *', times_=5)
+        ```
+
+        Note:
+        - The `crontab` parameter follows the standard cron format.
+        - If `times_` is set to -1, the function runs indefinitely based on the cron schedule.
+        - The `func` parameter should be a callable function with no arguments.
+
+        """
+        runs:int = 0
+        while runs<times_:
+            sec_waiting_next_run:int = CronTab(crontab).next()
+            func(*args, **kwargs)
+            runs += 1
+            log.info(f'>>> Wait {sec_waiting_next_run} seconds for next run <<<')
+            if runs<times_:
+                sleep(sec_waiting_next_run)
+
+    def scheduled(self, crontab:str, times_:int=-1)->None:
+        """
+        Decorator to schedule a function to run based on a cron-like schedule.
+
+        Args:
+            crontab (str): A string representing the cron-like schedule for function execution.
+            times_ (int, optional): The number of times the function should be executed.
+                If set to -1 (default), the function runs indefinitely based on the cron schedule.
+
+        Returns:
+        Callable: The decorated function.
+
+        Example:
+        ```
+        # Create an instance of EtlManager
+        em = EtlManager()
+
+        # Decorate the function with the scheduled decorator
+        @em.scheduled(crontab='*/1 * * * *', times_=5)
+        def your_scheduled_function():
+            # Your function logic here
+            pass
+        ```
+
+        Note:
+        - The `crontab` parameter follows the standard cron format.
+        - If `times_` is set to -1, the function runs indefinitely based on the cron schedule.
+        - The decorated function should not have any arguments.
+
+        """
+        def decorator(func: Callable) -> Callable:
+            def wrapper(*args, **kwargs):
+                self.run_as_schtask(func, crontab, times_, *args, **kwargs)
+            return wrapper
+        return decorator
                 
 
 

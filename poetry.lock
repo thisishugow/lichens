@@ -56,6 +56,16 @@ files = [
 ]
 
 [[package]]
+name = "crontab"
+version = "1.0.1"
+description = "Parse and use crontab schedules in Python"
+optional = false
+python-versions = "*"
+files = [
+    {file = "crontab-1.0.1.tar.gz", hash = "sha256:89477e3f93c81365e738d5ee2659509e6373bb2846de13922663e79aa74c6b91"},
+]
+
+[[package]]
 name = "greenlet"
 version = "3.0.1"
 description = "Lightweight in-process concurrent programming"
@@ -977,4 +987,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.13"
-content-hash = "1f1c5d964cc7bc0befae0d00ce78398f03ae50adcfa67688a501504e5f8ef963"
+content-hash = "72d06df97f1009bdb2cb5f0728c4dbd5027e09582220f49f1f31f9e4af8602a3"

@@ -19,6 +19,7 @@ alembic = "^1.12.1"
 pendulum = "2.1.2"
 pandera = "^0.17.2"
 psycopg2-binary = "^2.9.9"
+crontab = "^1.0.1"
 
 
 [build-system]
