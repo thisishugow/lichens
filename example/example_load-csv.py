@@ -12,8 +12,8 @@ from lichens.errors.db_errors import ProgramNotFoundError
 from lichens.logging import logger as log
 from lichens.tools import add_etl
 
-CONNECTION_STRING: str = "postgresql+psycopg://username:password@localhost:5432/dbname"
-ETL_NAME: str = "Sample"
+CONNECTION_STRING: str = "postgresql+psycopg2://username:password@localhost:5432/default"
+ETL_NAME: str = "demodb-etl"
 
 em: EtlManager = None
 
@@ -22,8 +22,8 @@ try:
 except ProgramNotFoundError as e:
     add_etl(
         name=ETL_NAME,
-        src_folder="path/to/files",
-        dst_folder="path/to/archive",
+        src_folder="source",
+        dst_folder="archive",
         json_setting={},
         update_by=1,
         con=CONNECTION_STRING,
@@ -103,32 +103,34 @@ def transform(df: DataFrame) -> DataFrame:
     Returns:
         DataFrame: _description_
     """
-    return df
+    return df.where(df.notnull(), 'null')
 
 
 def load(df):
     em.load_df(
         df=df,
-        tablename="sample_table",
+        tablename="sample_data",
         schema="public",
         if_exists="raise_error",
-        chunksize=500,
-        unique_key=["column1", "column2"],
+        chunksize=10,
+        unique_key=["process", "param_name", "update_dtt"],
     )
 
 
 def main():
     parser = argparse.ArgumentParser(description="An example ETL")
-    parser.add_argument("-i", "--interval", help="Batch interval in seconds", default=30, required=False)
-    args = parser.parse_args
+    parser.add_argument("-i", "--interval", help="Batch interval in seconds", type=int, default=30, required=False)
+    parser.add_argument("--test-mode", help="keep processed file in source folder", action='store_true', required=False)
+    args = parser.parse_args()
     interval:int = args.interval
+    dont_move:bool = args.test_mode
     em.reload_conf()
 
     # config of the program 
     conf:dict[str, Any] = em.conf
     src_folder = em.src_folder
-    while True:
-        for _, f in os.listdir(src_folder):
+    while True: # DEPRECIATED. Using Airflow is recommended.  
+        for _, f in enumerate(os.listdir(src_folder)):
             _status:str = None
             _last_log:dict[str, Any] = {
                 "filename":f,
@@ -137,7 +139,7 @@ def main():
             }
             try:
                 log.info(f"Start to process: {f}")
-                extract(fp=f)\
+                extract(fp= os.path.join(src_folder, f))\
                     .pipe(transform)\
                     .pipe(load)
                 _status = 'success'
@@ -149,18 +151,19 @@ def main():
             except Exception as e:
                 log.error(e, exc_info=True)
                 _status = 'fail'
-                _last_log["message"] = e
+                _last_log["message"] = str(e)
 
             finally:
-                _last_log["update_dtt"] = pendulum.now()
+                _last_log["update_dtt"] = pendulum.now().__str__()
                 em.update_status(
                     filename=f, 
                     status=_status, 
                     last_log=_last_log)
-                em.move(
-                    src=os.path.join(em.src_folder, f),
-                    status=_status
-                )
+                if not dont_move:
+                    em.move(
+                        src=os.path.join(em.src_folder, f),
+                        status=_status
+                    )
                 log.info(f"{f} processed. Status: {_last_log}")
         log.info(f'Waiting {interval} for next run.')
         sleep(interval)

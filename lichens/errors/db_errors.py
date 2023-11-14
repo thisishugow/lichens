@@ -1,6 +1,6 @@
 class ExceptionBase(Exception):
     def __init__(self, msg: str | None = None, *args: object) -> None:
-        super().__init__(*args)
+        super().__init__(msg, *args)
         self.msg = msg
     def __repr__(self) -> str:
         return super().__repr__()

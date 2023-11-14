@@ -45,7 +45,7 @@ class EtlManager:
                 )
             if not self._etl_setting:
                 raise ProgramNotFoundError(f"Name={self.name} not found. You can use lichens.tools.add_etl() to add one first.")
-            
+                
             self.src_folder = self._etl_setting.src_folder
             self.dst_folder[Status.FAIL.name] = os.path.join(
                 self._etl_setting.dst_folder, Status.FAIL.name
@@ -58,6 +58,8 @@ class EtlManager:
             )
             self.conf:dict = self._etl_setting.json_setting
 
+        except ProgramNotFoundError as e:
+            raise e
         except Exception as e:
             raise DatabaseConnectingFailed(e)
         
@@ -71,7 +73,10 @@ class EtlManager:
             src (PathLike): The path of source file. 
             status (Literal[&#39;fail&#39;, &#39;skip&#39;, &#39;success&#39;]): The process status
         """
-        dst:os.PathLike = os.join(self.dst_folder, f"{status}/")
+        fn:os.PathLike = os.path.basename(src)
+        if not os.path.exists(self.dst_folder.get(status)):
+            os.makedirs(self.dst_folder.get(status))
+        dst:os.PathLike = os.path.join(self.dst_folder.get(status), fn)
         try: 
             shutil.move(src, dst)
         except Exception as e:
@@ -97,14 +102,15 @@ class EtlManager:
             }
         with Session(self._engine) as s:
             try:
+                print()
                 s.query(EtlProgMng).filter(
                     EtlProgMng.id == self._etl_setting.id
                 ).update({EtlProgMng.last_log: last_log})
 
                 s.query(EtlProcHist).filter(EtlProcHist.file_name == filename).update(
-                    EtlProcHist.status == status
+                    {EtlProcHist.status: status,}
                 )
-
+                s.commit()
             except Exception as e:
                 s.rollback()
                 raise UpdateStatusFailed(f"""File: {filename}. Errors: {e}""")
