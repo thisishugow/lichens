@@ -122,7 +122,9 @@ def do(dont_move:bool):
         add_file(file_name=f, etl_id=em.id, update_by=1, con=CONNECTION_STRING)
     queue:list[str] = em.get_queue_list()
     print(queue)
+    file_exists:bool = True
     for _, f in enumerate(queue):
+        file_exists:bool = True
         em.reload_conf()
         # config of the program 
         conf:dict[str, Any] = em.conf
@@ -134,6 +136,12 @@ def do(dont_move:bool):
             "message":None,
         }
         try:
+
+            em.update_status(
+                filename=f, 
+                status='processing', 
+                user_id=1,
+                last_log=_last_log)
             log.info(f"Start to process: {f}")
             extract(fp= os.path.join(src_folder, f))\
                 .pipe(transform)\
@@ -143,7 +151,11 @@ def do(dont_move:bool):
         except KeyboardInterrupt:
             log.info('<ctrl+c> detected.')
             sys.exit(0)
-        
+        except FileNotFoundError as e:
+            log.error(e, exc_info=True)
+            _status = 'skip'
+            _last_log["message"] = str(e)
+            file_exists = False
         except Exception as e:
             log.error(e, exc_info=True)
             _status = 'fail'
@@ -158,7 +170,7 @@ def do(dont_move:bool):
                 status=_status, 
                 user_id=1,
                 last_log=_last_log)
-            if not dont_move:
+            if not dont_move and file_exists:
                 em.move(
                     src=os.path.join(em.src_folder, f),
                     status=_status

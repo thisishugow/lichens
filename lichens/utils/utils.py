@@ -1,6 +1,7 @@
 from enum import Enum, auto
 from types import DynamicClassAttribute
 from pandas.core.frame import DataFrame
+import pendulum
 
 
 class EnumBase(Enum):
@@ -124,3 +125,7 @@ def generate_insert_sql(
                 )
 
         return sql_text
+    
+
+def get_now_str(format="%Y%m%d%H%M%s"):
+    return pendulum.now().strftime(format)

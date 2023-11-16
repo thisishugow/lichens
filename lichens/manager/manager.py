@@ -1,6 +1,7 @@
 from os import PathLike
 import os
 from time import sleep
+import time
 from typing import Literal, Callable
 from crontab import CronTab
 import pendulum
@@ -13,6 +14,8 @@ from lichens.utils import Status, generate_insert_sql, DupPolicy
 from pandas.core.frame import DataFrame
 import abc
 from logging import getLogger
+
+from lichens.utils.utils import get_now_str
 
 log = getLogger()
 
@@ -80,10 +83,15 @@ class EtlManager:
             src (PathLike): The path of source file. 
             status (Literal[&#39;fail&#39;, &#39;skip&#39;, &#39;success&#39;]): The process status
         """
+        dst_folder:os.PathLike = self.dst_folder.get(status)
         fn:os.PathLike = os.path.basename(src)
-        if not os.path.exists(self.dst_folder.get(status)):
-            os.makedirs(self.dst_folder.get(status))
-        dst:os.PathLike = os.path.join(self.dst_folder.get(status), fn)
+        if not os.path.exists(dst_folder):
+            os.makedirs(dst_folder)
+        dst:os.PathLike = os.path.join(dst_folder, fn)
+        if os.path.exists(dst):
+            _fn, _ext = os.path.splitext(fn)
+            _new_fn = f"{_fn}_"+get_now_str().replace('.','')+_ext
+            dst = os.path.join(dst_folder, _new_fn)
         try: 
             shutil.move(src, dst)
         except Exception as e:
