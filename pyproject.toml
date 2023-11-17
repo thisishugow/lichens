@@ -20,6 +20,7 @@ pendulum = "2.1.2"
 pandera = "^0.17.2"
 psycopg2-binary = "^2.9.9"
 crontab = "^1.0.1"
+aioftp = "^0.21.4"
 
 
 [build-system]

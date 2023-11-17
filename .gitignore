@@ -1,3 +1,6 @@
 dist
 __pycache__
 versions
+test/source
+test/archive
+test/test-etl.py
