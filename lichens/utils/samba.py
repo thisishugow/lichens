@@ -4,7 +4,7 @@ from smbprotocol.open import FilePipePrinterAccessMask
 from smbprotocol.header import NtStatus
 from smbprotocol.file_info import FileInformationClass, FileNamesInformation
 import glob
-import fnmatch
+from fnmatch import fnmatch
 
 class SambaServer:
     """
