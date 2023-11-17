@@ -7,6 +7,18 @@ import aioftp
 
 
 class FtpServer(FTP):
+    """
+    A subclass of FTP with additional methods for batch uploading and downloading.
+
+    Args:
+        host (str, optional): The FTP server hostname or IP address. Defaults to an empty string.
+        user (str, optional): The username for FTP authentication. Defaults to an empty string.
+        passwd (str, optional): The password for FTP authentication. Defaults to an empty string.
+        acct (str, optional): An optional account string. Defaults to an empty string.
+        timeout (float, optional): Timeout for FTP operations. Defaults to None.
+        source_address (tuple[str, int] or None, optional): The source address for the connection. Defaults to None.
+        encoding (str, optional): The encoding to be used for data transfers. Defaults to "utf-8".
+    """
     def __init__(self, host: str = "", user: str = "", passwd: str = "", acct: str = "", timeout: float = ..., source_address: tuple[str, int] | None = None, *, encoding: str = "utf-8") -> None:
         super().__init__(host, user, passwd, acct, timeout, source_address, encoding=encoding)
 
@@ -53,6 +65,18 @@ class FtpServer(FTP):
 
 
 class AioFtpServer(aioftp.ClientSession):
+    """
+    A subclass of aioftp.ClientSession with additional methods for batch uploading and downloading asynchronously.
+
+    Args:
+        host (str, optional): The FTP server hostname or IP address. Defaults to an empty string.
+        user (str, optional): The username for FTP authentication. Defaults to an empty string.
+        passwd (str, optional): The password for FTP authentication. Defaults to an empty string.
+        acct (str, optional): An optional account string. Defaults to an empty string.
+        timeout (float, optional): Timeout for FTP operations. Defaults to None.
+        source_address (tuple[str, int] or None, optional): The source address for the connection. Defaults to None.
+        encoding (str, optional): The encoding to be used for data transfers. Defaults to "utf-8".
+    """
     def __init__(self, host: str = "", user: str = "", passwd: str = "", acct: str = "", timeout: float = ..., source_address: tuple[str, int] | None = None, *, encoding: str = "utf-8") -> None:
         super().__init__(host, user, passwd, acct, timeout, source_address, encoding=encoding)
 
