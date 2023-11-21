@@ -29,7 +29,7 @@ class SambaServer:
         self.share_name = share_name
         self.username = username
         self.password = password
-        self.connection = Connection()
+        self.connection:Connection = Connection()
 
     def connect(self):
         """
